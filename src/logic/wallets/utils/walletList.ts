@@ -10,7 +10,7 @@ type Wallet = WalletInitOptions & {
 }
 
 const rpcUrl = getRpcServiceUrl()
-const wallets: Wallet[] = [
+const wallets = (): Wallet[] => [
   { walletName: WALLETS.METAMASK, preferred: true, desktop: false },
   {
     walletName: WALLETS.WALLET_CONNECT,
@@ -34,6 +34,12 @@ const wallets: Wallet[] = [
     preferred: true,
     rpcUrl,
     LedgerTransport: (window as any).TransportNodeHid,
+  },
+  {
+    walletName: WALLETS.KEYSTONE,
+    desktop: false,
+    rpcUrl,
+    appName: 'Gnosis Safe',
   },
   { walletName: WALLETS.TRUST, preferred: true, desktop: false },
   {
@@ -66,8 +72,12 @@ export const getSupportedWallets = (): WalletInitOptions[] => {
   const { isDesktop } = window
   /* eslint-disable no-unused-vars */
   if (isDesktop) {
-    return wallets.filter((wallet) => wallet.desktop).map(({ desktop, ...rest }) => rest)
+    return wallets()
+      .filter((wallet) => wallet.desktop)
+      .map(({ desktop, ...rest }) => rest)
   }
 
-  return wallets.map(({ desktop, ...rest }) => rest).filter((w) => !disabledWallets.includes(w.walletName))
+  return wallets()
+    .map(({ desktop, ...rest }) => rest)
+    .filter((w) => !disabledWallets.includes(w.walletName))
 }

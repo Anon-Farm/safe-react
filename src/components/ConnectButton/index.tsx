@@ -1,4 +1,5 @@
 import Onboard from 'bnc-onboard'
+import { API } from 'bnc-onboard/dist/src/interfaces'
 import React, { ReactElement } from 'react'
 
 import Button from 'src/components/layout/Button'
@@ -13,9 +14,7 @@ import { shouldSwitchNetwork, switchNetwork } from 'src/logic/wallets/utils/netw
 let lastUsedAddress = ''
 let providerName
 
-const wallets = getSupportedWallets()
-
-export const onboard = Onboard({
+const getOnboardConfiguration = () => ({
   networkId: parseInt(getNetworkId(), 10),
   networkName: getNetworkName(),
   subscriptions: {
@@ -43,7 +42,7 @@ export const onboard = Onboard({
   },
   walletSelect: {
     description: 'Please select a wallet to connect to Gnosis Safe',
-    wallets,
+    wallets: getSupportedWallets(),
   },
   walletCheck: [
     { checkName: 'derivationPath' },
@@ -54,12 +53,22 @@ export const onboard = Onboard({
   ],
 })
 
+let currentOnboardInstance
+export const onboard = (): API => {
+  const chainId = getNetworkId()
+  if (!currentOnboardInstance || currentOnboardInstance.getState().appNetworkId !== parseInt(chainId, 10)) {
+    currentOnboardInstance = Onboard(getOnboardConfiguration())
+  }
+
+  return currentOnboardInstance
+}
+
 const checkWallet = async (): Promise<boolean> => {
-  const ready = onboard.walletCheck()
+  const ready = onboard().walletCheck()
 
   if (shouldSwitchNetwork()) {
     try {
-      await switchNetwork(onboard.getState().wallet, getNetworkId())
+      await switchNetwork(onboard().getState().wallet, getNetworkId())
       return true
     } catch (e) {
       e.log()
@@ -75,12 +84,12 @@ export const onboardUser = async (): Promise<boolean> => {
   // which indicates that a wallet has already been selected
   // and web3 has been instantiated with that provider
   const web3 = getWeb3()
-  const walletSelected = web3 ? true : await onboard.walletSelect()
+  const walletSelected = web3 ? true : await onboard().walletSelect()
   return walletSelected && checkWallet()
 }
 
 export const onConnectButtonClick = async (): Promise<void> => {
-  const walletSelected = await onboard.walletSelect()
+  const walletSelected = await onboard().walletSelect()
 
   // perform wallet checks only if user selected a wallet
   if (walletSelected) {
